@@ -27,7 +27,8 @@ def get_gpt_data():
         )
 
         cs = ctx.cursor()
-        cs.execute("SELECT * FROM gpt_innovation_forecast_analyst LIMIT {limit} OFFSET {offset}")
+        query("SELECT * FROM gpt_innovation_forecast_analyst LIMIT %s OFFSET %s")
+        cs.execute(query, (limit, offset))
         columns = [col[0] for col in cs.description]
         rows = cs.fetchall()
         cs.close()
