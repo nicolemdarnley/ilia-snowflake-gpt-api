@@ -27,7 +27,7 @@ def get_gpt_data():
         )
 
         cs = ctx.cursor()
-        cs.execute("SELECT * FROM gpt_innovation_analyst")
+        cs.execute("SELECT * FROM gpt_innovation_forecast_analyst")
         columns = [col[0] for col in cs.description]
         rows = cs.fetchall()
         cs.close()
