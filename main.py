@@ -1,28 +1,24 @@
-from fastapi import FastAPI
-import snowflake.connector
-from fastapi.responses import JSONResponse
 import os
+import snowflake.connector
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
-
-# Read Snowflake credentials from environment variables
-SF_ACCOUNT = os.getenv("SF_ACCOUNT")
-SF_USER = os.getenv("SF_USER")
-SF_PASSWORD = os.getenv("SF_PASSWORD")
-SF_WAREHOUSE = os.getenv("SF_WAREHOUSE")
-SF_DATABASE = os.getenv("SF_DATABASE", "ANALYTICS")
-SF_SCHEMA = os.getenv("SF_SCHEMA", "GPTS")
 
 @app.get("/data")
 def get_gpt_data():
     try:
+        with open("rsa_key.pem", "rb") as key_file:
+            private_key = key_file.read()
+
         ctx = snowflake.connector.connect(
-            user=SF_USER,
-            password=SF_PASSWORD,
-            account=SF_ACCOUNT,
-            warehouse=SF_WAREHOUSE,
-            database=SF_DATABASE,
-            schema=SF_SCHEMA,
+            user=os.getenv("SF_USER"),
+            account=os.getenv("SF_ACCOUNT"),
+            private_key=private_key,
+            warehouse=os.getenv("SF_WAREHOUSE"),
+            database=os.getenv("SF_DATABASE", "ANALYTICS"),
+            schema=os.getenv("SF_SCHEMA", "GPTS"),
+            role=os.getenv("SF_ROLE")
         )
         cs = ctx.cursor()
         cs.execute("SELECT * FROM gpt_innovation_analyst")
