@@ -1,6 +1,7 @@
 import os
 import snowflake.connector
 import base64
+from datetime import date, datetime
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -13,10 +14,8 @@ def get_gpt_data():
         if not private_key_b64:
             return JSONResponse(content={"error": "Private key not found"}, status_code=500)
 
-        # Decode the base64 DER key (just ONCE!)
         private_key_der = base64.b64decode(private_key_b64)
 
-        # Connect to Snowflake
         ctx = snowflake.connector.connect(
             user=os.getenv("SF_USER"),
             account=os.getenv("SF_ACCOUNT"),
@@ -28,11 +27,19 @@ def get_gpt_data():
         )
 
         cs = ctx.cursor()
-        cs.execute("SELECT * FROM gpt_innovation_forecast_analyst")
+        cs.execute("SELECT * FROM gpt_innovation_analyst")
         columns = [col[0] for col in cs.description]
-        results = [dict(zip(columns, row)) for row in cs.fetchall()]
+        rows = cs.fetchall()
         cs.close()
         ctx.close()
+
+        # Serialize rows into JSON-safe objects
+        def serialize_value(v):
+            if isinstance(v, (date, datetime)):
+                return v.isoformat()
+            return v
+
+        results = [dict((col, serialize_value(val)) for col, val in zip(columns, row)) for row in rows]
 
         return JSONResponse(content=results)
 
