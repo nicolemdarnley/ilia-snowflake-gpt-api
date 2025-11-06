@@ -2,7 +2,7 @@ import os
 import snowflake.connector
 import base64
 from datetime import date, datetime
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 
 app = FastAPI()
