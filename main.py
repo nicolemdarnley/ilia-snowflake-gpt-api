@@ -8,7 +8,10 @@ from fastapi.responses import JSONResponse
 app = FastAPI()
 
 @app.get("/data")
-def get_gpt_data():
+def get_gpt_data(
+    limit: int = Query(default=1000, le=10000),
+    offset: int = Query(default=0, ge=0)
+):
     try:
         private_key_b64 = os.getenv("SF_PRIVATE_KEY_B64")
         if not private_key_b64:
