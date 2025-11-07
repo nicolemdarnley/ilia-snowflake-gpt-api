@@ -1,14 +1,15 @@
 from fastapi import FastAPI, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse  # Use ORJSON for better performance
 from fastapi.middleware.gzip import GZipMiddleware
 from datetime import date, datetime
 import snowflake.connector
 import os
 import base64
 
-app = FastAPI()
+# Set ORJSON as the default response class for faster/lighter JSON responses
+app = FastAPI(default_response_class=ORJSONResponse)
 
-# ✅ Enable GZip compression to reduce response size
+# Enable GZip compression for large responses
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/data")
@@ -19,13 +20,13 @@ def get_gpt_data(
     collection: str = Query(default=None),
     sku: str = Query(default=None),
     product_category: str = Query(default=None),
-    start_date: str = Query(default=None),  # New date filters
+    start_date: str = Query(default=None),
     end_date: str = Query(default=None)
 ):
     try:
         private_key_b64 = os.getenv("SF_PRIVATE_KEY_B64")
         if not private_key_b64:
-            return JSONResponse(content={"error": "Missing private key"}, status_code=500)
+            return ORJSONResponse(content={"error": "Missing private key"}, status_code=500)
 
         private_key_der = base64.b64decode(private_key_b64)
 
@@ -41,11 +42,12 @@ def get_gpt_data(
 
         cs = ctx.cursor()
 
+        # Start query construction
         query = "SELECT * FROM gpt_innovation_forecast_analyst"
         conditions = []
         params = []
 
-        # Apply filters
+        # Add filters dynamically
         if region:
             conditions.append("region = %s")
             params.append(region)
@@ -68,7 +70,8 @@ def get_gpt_data(
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        query += " LIMIT %s OFFSET %s"
+        # Add ORDER BY for stable pagination
+        query += " ORDER BY date ASC LIMIT %s OFFSET %s"
         params.extend([limit, offset])
 
         cs.execute(query, params)
@@ -77,6 +80,7 @@ def get_gpt_data(
         cs.close()
         ctx.close()
 
+        # Helper to serialize dates
         def serialize_value(v):
             if isinstance(v, (date, datetime)):
                 return v.isoformat()
@@ -87,10 +91,10 @@ def get_gpt_data(
             for row in rows
         ]
 
-        return JSONResponse(content={
+        return ORJSONResponse(content={
             "data": results,
             "nextOffset": offset + limit if len(rows) == limit else None
         })
 
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return ORJSONResponse(content={"error": str(e)}, status_code=500)
