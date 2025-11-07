@@ -1,3 +1,4 @@
 fastapi
 uvicorn
 snowflake-connector-python
+orjson
