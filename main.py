@@ -4,6 +4,8 @@ from datetime import date, datetime
 import snowflake.connector
 import os
 import base64
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app = FastAPI()
 
