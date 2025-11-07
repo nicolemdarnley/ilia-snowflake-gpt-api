@@ -9,8 +9,6 @@ app = FastAPI()
 
 @app.get("/data")
 def get_gpt_data(
-    limit: int = Query(default=1000, le=10000),
-    offset: int = Query(default=0, ge=0),
     region: str = Query(default=None),
     collection: str = Query(default=None),
     sku: str = Query(default=None),
@@ -56,9 +54,6 @@ def get_gpt_data(
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        query += " LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
-
         cs.execute(query, params)
         columns = [col[0] for col in cs.description]
         rows = cs.fetchall()
@@ -75,10 +70,7 @@ def get_gpt_data(
             for row in rows
         ]
 
-        return JSONResponse(content={
-            "data": results,
-            "nextOffset": offset + limit if len(rows) == limit else None
-        })
+        return JSONResponse(content={"data": results})
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
