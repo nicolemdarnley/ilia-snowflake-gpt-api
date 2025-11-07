@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
+from fastapi.middleware.gzip import GZipMiddleware
 from datetime import date, datetime
 import snowflake.connector
 import os
 import base64
-from fastapi.middleware.gzip import GZipMiddleware
 
 app = FastAPI()
 
+# ✅ Enable GZip compression to reduce response size
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/data")
@@ -17,7 +18,9 @@ def get_gpt_data(
     region: str = Query(default=None),
     collection: str = Query(default=None),
     sku: str = Query(default=None),
-    product_category: str = Query(default=None)
+    product_category: str = Query(default=None),
+    start_date: str = Query(default=None),  # New date filters
+    end_date: str = Query(default=None)
 ):
     try:
         private_key_b64 = os.getenv("SF_PRIVATE_KEY_B64")
@@ -42,6 +45,7 @@ def get_gpt_data(
         conditions = []
         params = []
 
+        # Apply filters
         if region:
             conditions.append("region = %s")
             params.append(region)
@@ -54,6 +58,12 @@ def get_gpt_data(
         if product_category:
             conditions.append("product_category = %s")
             params.append(product_category)
+        if start_date:
+            conditions.append("date >= %s")
+            params.append(start_date)
+        if end_date:
+            conditions.append("date <= %s")
+            params.append(end_date)
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
