@@ -9,6 +9,8 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app = FastAPI()
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 @app.get("/data")
 def get_gpt_data(
     limit: int = Query(default=1000, le=10000),
